@@ -4666,24 +4666,51 @@ async function saveUserToBackend(user) {
 // ======================== //
 //   ЗАГРУЗКА БАЛАНСА      //
 // ======================== //
-async function loadBalanceFromBackend(telegramId) {
+async function addBalance(amount) {
     try {
-        console.log("💰 Loading balance for user:", telegramId);
-        
-        const data = await safeFetch(`${BACKEND_URL}/users/${telegramId}/balance`);
-        const balance = data.balance || 1000;
-        
-        document.getElementById('balance').textContent = balance;
-        localStorage.setItem('userBalance', balance.toString());
-        
-        console.log("✅ Balance loaded:", balance);
-        return balance;
+        const user = Telegram.WebApp.initDataUnsafe?.user;
+        if (!user) return false;
 
+        const response = await safeFetch(${BACKEND_URL}/users/${user.id}/balance/add, {
+            method: "POST",
+            body: JSON.stringify({ amount: amount })
+        });
+
+        if (response.success) {
+            document.getElementById('balance').textContent = response.newBalance;
+            localStorage.setItem('userBalance', response.newBalance.toString());
+            showToast(Баланс пополнен на ${amount}!);
+            return true;
+        }
+        
+        return false;
     } catch (error) {
-        console.error("❌ Balance load error:", error);
-        document.getElementById('balance').textContent = '1000';
-        showToast('Ошибка загрузки баланса');
-        return 1000;
+        console.error("Add balance error:", error);
+        showToast('Ошибка пополнения баланса');
+        return false;
+    }
+}
+  async function subtractBalance(amount) {
+    try {
+        const user = Telegram.WebApp.initDataUnsafe?.user;
+        if (!user) return false;
+
+        const response = await safeFetch(${BACKEND_URL}/users/${user.id}/balance/subtract, {
+            method: "POST",
+            body: JSON.stringify({ amount: amount })
+        });
+
+        if (response.success) {
+            document.getElementById('balance').textContent = response.newBalance;
+            localStorage.setItem('userBalance', response.newBalance.toString());
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error("Subtract balance error:", error);
+        showToast('Ошибка списания средств');
+        return false;
     }
 }
 
@@ -4715,14 +4742,12 @@ async function loadCartFromBackend(telegramId) {
 // ======================== //
 async function addToCart(productId) {
     const user = Telegram.WebApp.initDataUnsafe?.user;
-    
     if (!user) {
         showToast('Требуется авторизация в Telegram');
         return;
     }
 
     const product = productsData.find(p => p.id === productId);
-    
     if (!product) {
         showToast('Товар не найден');
         return;
@@ -4731,9 +4756,7 @@ async function addToCart(productId) {
     const telegramId = user.id.toString();
     
     try {
-        console.log("🛒 Adding to cart:", product.title);
-        
-        await safeFetch(`${BACKEND_URL}/cart`, {
+        await safeFetch(${BACKEND_URL}/cart, {
             method: "POST",
             body: JSON.stringify({
                 telegramId: telegramId,
@@ -4750,7 +4773,7 @@ async function addToCart(productId) {
         triggerVibration();
 
     } catch (error) {
-        console.error("❌ Add to cart error:", error);
+        console.error("Add to cart error:", error);
         showToast('Ошибка при добавлении товара');
     }
 }
